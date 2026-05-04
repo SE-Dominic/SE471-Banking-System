@@ -10,7 +10,7 @@ import com.se370group1.banking_system.dto.BankAccountDTO;
 import com.se370group1.banking_system.model.BankAccount;
 import com.se370group1.banking_system.repository.BankAccountRepository;
 
-@Service    
+@Service
 public class BankAccountService {
     @Autowired
     private final BankAccountRepository bankAccountRepository;
@@ -40,13 +40,13 @@ public class BankAccountService {
         }
 
         //return list of DTOs back to bankAccountController.java
-        return bankAccountDTOList; 
+        return bankAccountDTOList;
     }
-    
+
     public Boolean withdrawFunds(String sourceAccountID, double amount) {
         BankAccount sourceAccount = bankAccountRepository.findById(sourceAccountID)
-            .orElseThrow(() -> new RuntimeException("Source account not found"));
-            
+                .orElseThrow(() -> new RuntimeException("Source account not found"));
+
         if (sourceAccount.getCurrentBalance() >= amount) {
             sourceAccount.setCurrentBalance(sourceAccount.getCurrentBalance() - amount);
             bankAccountRepository.save(sourceAccount);
@@ -57,8 +57,8 @@ public class BankAccountService {
 
     public Boolean depositFunds(String targetAccountID, double amount) {
         BankAccount targetAccount = bankAccountRepository.findById(targetAccountID)
-            .orElseThrow(() -> new RuntimeException("Target account not found"));
-            
+                .orElseThrow(() -> new RuntimeException("Target account not found"));
+
         targetAccount.setCurrentBalance(targetAccount.getCurrentBalance() + amount);
         bankAccountRepository.save(targetAccount);
         return true;
@@ -73,5 +73,16 @@ public class BankAccountService {
         } catch (RuntimeException e) {
             return false;
         }
+    }
+
+    // New — used by BankingFacade to fetch the current balance
+    // before WithdrawValidationStrategy checks if the amount is valid
+    public double getBalance(String accountId) {
+        BankAccount account = bankAccountRepository.findById(accountId).orElse(null);
+        if (account == null) {
+            System.out.println("Account not found: " + accountId);
+            return 0.0;
+        }
+        return account.getCurrentBalance();
     }
 }
