@@ -215,103 +215,20 @@ function generateBankAccountHTML(bankAccount) {
                 <div class="bank-account-balance">Current Balance: $${bankAccount.balance.toFixed(2)}</div>
             </div>
             <div class="bank-account-actions">
-                <button class="action-btn" onclick="redirectToDepositForm('${bankAccount.bankAccountID}')">Deposit Funds</button>
-                <button class="action-btn" onclick="redirectToWithdrawForm('${bankAccount.bankAccountID}')">Withdraw Funds</button>
+                <button class="action-btn" onclick="redirectDepositForm('${bankAccount.bankAccountID}')">Deposit Funds</button>
+                <button class="action-btn" onclick="redirectWithdrawForm('${bankAccount.bankAccountID}')">Withdraw Funds</button>
                 <button class="action-btn" onclick="redirectTransactionForm('${bankAccount.bankAccountID}')">Transfer Funds</button>
                 <button class="action-btn" onclick="redirectTransactions('${bankAccount.bankAccountID}')">View Transaction History</button>
             </div>
         </div>
     `;
 }
+
 function redirectTransactionForm(bankAccountID) {
     // Redirect to the transaction form page with the bank account ID as a query parameter
     window.location.hash = `transactionForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
 }
-function getDepositAmount() {
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-    const bankAccountID = urlParams.get('bankAccountID');
-    const depositAmount = parseFloat(document.getElementById('depositAmount').value);
-    
-    if (!depositAmount || depositAmount <= 0) {
-        alert("Please enter a valid deposit amount.");
-        return;
-    }
 
-    fetch(`/api/bankAccount/depositFunds?bankAccountID=${encodeURIComponent(bankAccountID)}&amount=${depositAmount}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            bankAccountID: bankAccountID, 
-            amount: depositAmount })  
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Deposit failed');
-        }
-        return response.json();
-    })
-    .then(success => {
-        if (success) {
-            alert('Deposit completed successfully!');
-            window.location.hash = 'accounts'; // Redirect back to accounts page
-        } else {
-            alert('Deposit failed. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while processing the deposit. Please try again.');
-    });
-}
-function getWithdrawAmount() {
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-    const bankAccountID = urlParams.get('bankAccountID');
-    const withdrawAmount = parseFloat(document.getElementById('withdrawAmount').value);
-    
-    if (!withdrawAmount || withdrawAmount <= 0) {
-        alert("Please enter a valid withdrawal amount.");
-        return;
-    }
-
-    fetch(`/api/bankAccount/withdrawFunds?bankAccountID=${encodeURIComponent(bankAccountID)}&amount=${withdrawAmount}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            bankAccountID: bankAccountID, 
-            amount: withdrawAmount })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Withdrawal failed');
-        }
-        return response.json();
-    })
-    .then(success => {
-        if (success) {
-            alert('Withdrawal completed successfully!');
-            window.location.hash = 'accounts'; // Redirect back to accounts page
-        } else {
-            alert('Withdrawal failed. Please check your balance and try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while processing the withdrawal. Please try again.');
-    });
-}
-function redirectToDepositForm(bankAccountID) {
-    // Redirect to the deposit form page with the bank account ID as a query parameter
-    window.location.hash = `depositForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
-}
-
-function redirectToWithdrawForm(bankAccountID) {
-    // Redirect to the withdraw form page with the bank account ID as a query parameter
-    window.location.hash = `withdrawForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
-}
 function redirectTransactions(bankAccountID) {
     // Redirect to the withdraw form page with the bank account ID as a query parameter
     window.location.hash = `transactions.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
@@ -353,13 +270,8 @@ function populateAccountDropdown() {
 }
 
 function confirmTransferEndpoint() {
-    // Get the selected target account ID from dropdown
     const targetAccountID = document.getElementById('account-dropdown').value;
-    
-    // Get the transfer amount from input
     const transferAmount = parseFloat(document.getElementById('transfer-amount-input').value);
-
-    // Get the current account ID from the hidden input
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     const sourceAccountID = urlParams.get('bankAccountID');
 
@@ -368,30 +280,24 @@ function confirmTransferEndpoint() {
         return;
     }
 
-    // Create query parameters for the transfer
     const params = new URLSearchParams({
         sourceAccountID: sourceAccountID,
         targetAccountID: targetAccountID,
         amount: transferAmount
     });
 
-    // Call the transferFunds endpoint
     fetch(`/api/bankAccount/transferFunds?${params.toString()}`, {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error('Transfer failed');
-        }
+        if (!response.ok) throw new Error('Transfer failed');
         return response.json();
     })
     .then(success => {
         if (success) {
             alert('Transfer completed successfully!');
-            window.location.hash = 'accounts'; // Redirect back to accounts page
+            window.location.hash = 'accounts';
         } else {
             alert('Transfer failed. Please check account balances and try again.');
         }
@@ -401,3 +307,70 @@ function confirmTransferEndpoint() {
         alert('An error occurred while processing the transfer. Please try again.');
     });
 }
+
+function redirectDepositForm(bankAccountID) {
+    window.location.hash = `depositForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
+}
+
+function redirectWithdrawForm(bankAccountID) {
+    window.location.hash = `withdrawForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
+}
+
+function confirmDepositEndpoint() {
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const accountId = urlParams.get('bankAccountID');
+    const amount = parseFloat(document.getElementById('deposit-amount-input').value);
+
+    if (!accountId || !amount) {
+        alert('Missing account or amount.');
+        return;
+    }
+
+    fetch(`/api/bankAccount/depositFunds?targetAccountID=${encodeURIComponent(accountId)}&amount=${amount}`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(success => {
+        if (success) {
+            alert('Deposit successful!');
+            window.location.hash = 'accounts';
+        } else {
+            alert('Deposit failed. Amount must be between $0.01 and $10,000.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during the deposit.');
+    });
+}
+
+function confirmWithdrawEndpoint() {
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const accountId = urlParams.get('bankAccountID');
+    const amount = parseFloat(document.getElementById('withdraw-amount-input').value);
+
+    if (!accountId || !amount) {
+        alert('Missing account or amount.');
+        return;
+    }
+
+    fetch(`/api/bankAccount/withdrawFunds?sourceAccountID=${encodeURIComponent(accountId)}&amount=${amount}`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(success => {
+        if (success) {
+            alert('Withdrawal successful!');
+            window.location.hash = 'accounts';
+        } else {
+            alert('Withdrawal failed. Check your balance and try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during the withdrawal.');
+    });
+}
+

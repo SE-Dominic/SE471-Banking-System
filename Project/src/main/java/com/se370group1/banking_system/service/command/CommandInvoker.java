@@ -5,7 +5,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommandInvoker {
 
-    public Boolean executeCommand(Command command) {
+    public boolean executeCommand(Command command) {  // Boolean → boolean
+
         return command.execute();
     }
 }

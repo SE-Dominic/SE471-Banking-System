@@ -215,7 +215,9 @@ function generateBankAccountHTML(bankAccount) {
                 <div class="bank-account-balance">Current Balance: $${bankAccount.balance.toFixed(2)}</div>
             </div>
             <div class="bank-account-actions">
-                <button class="action-btn" onclick="redirectTransactionForm('${bankAccount.bankAccountID}')">Manage Bank Account</button>
+                <button class="action-btn" onclick="redirectDepositForm('${bankAccount.bankAccountID}')">Deposit Funds</button>
+                <button class="action-btn" onclick="redirectWithdrawForm('${bankAccount.bankAccountID}')">Withdraw Funds</button>
+                <button class="action-btn" onclick="redirectTransactionForm('${bankAccount.bankAccountID}')">Transfer Funds</button>
                 <button class="action-btn" onclick="redirectTransactions('${bankAccount.bankAccountID}')">View Transaction History</button>
             </div>
         </div>
@@ -268,13 +270,8 @@ function populateAccountDropdown() {
 }
 
 function confirmTransferEndpoint() {
-    // Get the selected target account ID from dropdown
     const targetAccountID = document.getElementById('account-dropdown').value;
-    
-    // Get the transfer amount from input
     const transferAmount = parseFloat(document.getElementById('transfer-amount-input').value);
-
-    // Get the current account ID from the hidden input
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     const sourceAccountID = urlParams.get('bankAccountID');
 
@@ -283,30 +280,24 @@ function confirmTransferEndpoint() {
         return;
     }
 
-    // Create query parameters for the transfer
     const params = new URLSearchParams({
         sourceAccountID: sourceAccountID,
         targetAccountID: targetAccountID,
         amount: transferAmount
     });
 
-    // Call the transferFunds endpoint
     fetch(`/api/bankAccount/transferFunds?${params.toString()}`, {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error('Transfer failed');
-        }
+        if (!response.ok) throw new Error('Transfer failed');
         return response.json();
     })
     .then(success => {
         if (success) {
             alert('Transfer completed successfully!');
-            window.location.hash = 'accounts'; // Redirect back to accounts page
+            window.location.hash = 'accounts';
         } else {
             alert('Transfer failed. Please check account balances and try again.');
         }
@@ -316,3 +307,70 @@ function confirmTransferEndpoint() {
         alert('An error occurred while processing the transfer. Please try again.');
     });
 }
+
+function redirectDepositForm(bankAccountID) {
+    window.location.hash = `depositForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
+}
+
+function redirectWithdrawForm(bankAccountID) {
+    window.location.hash = `withdrawForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
+}
+
+function confirmDepositEndpoint() {
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const accountId = urlParams.get('bankAccountID');
+    const amount = parseFloat(document.getElementById('deposit-amount-input').value);
+
+    if (!accountId || !amount) {
+        alert('Missing account or amount.');
+        return;
+    }
+
+    fetch(`/api/bankAccount/depositFunds?targetAccountID=${encodeURIComponent(accountId)}&amount=${amount}`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(success => {
+        if (success) {
+            alert('Deposit successful!');
+            window.location.hash = 'accounts';
+        } else {
+            alert('Deposit failed. Amount must be between $0.01 and $10,000.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during the deposit.');
+    });
+}
+
+function confirmWithdrawEndpoint() {
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const accountId = urlParams.get('bankAccountID');
+    const amount = parseFloat(document.getElementById('withdraw-amount-input').value);
+
+    if (!accountId || !amount) {
+        alert('Missing account or amount.');
+        return;
+    }
+
+    fetch(`/api/bankAccount/withdrawFunds?sourceAccountID=${encodeURIComponent(accountId)}&amount=${amount}`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(success => {
+        if (success) {
+            alert('Withdrawal successful!');
+            window.location.hash = 'accounts';
+        } else {
+            alert('Withdrawal failed. Check your balance and try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during the withdrawal.');
+    });
+}
+

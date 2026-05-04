@@ -32,6 +32,7 @@ public class Transaction {
         this.connectedBankAccountID = t_dto.getConnectedBankAccount();
         this.sourceEntity = t_dto.getSourceEntity();
         this.details = t_dto.getDetails();
+        this.amountDollars = t_dto.getAmountDollars();
         this.transactionDate = t_dto.getTransactionDate();
     }
     public String getTransactionID() { return transactionID; }

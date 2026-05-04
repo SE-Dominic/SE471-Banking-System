@@ -1,19 +1,19 @@
 package com.se370group1.banking_system.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.se370group1.banking_system.dto.BankAccountDTO;
 import com.se370group1.banking_system.dto.TransactionDTO;
-import com.se370group1.banking_system.dto.UserDTO;
-import com.se370group1.banking_system.model.BankAccount;
-import com.se370group1.banking_system.repository.BankAccountRepository;
-import com.se370group1.banking_system.service.facade.BankingFacade;
+import com.se370group1.banking_system.service.command.CommandInvoker;
+import com.se370group1.banking_system.service.command.DepositCommand;
+import com.se370group1.banking_system.service.command.TransferCommand;
+import com.se370group1.banking_system.service.command.WithdrawCommand;
+import com.se370group1.banking_system.service.strategy.DepositValidationStrategy;
+import com.se370group1.banking_system.service.strategy.WithdrawValidationStrategy;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -24,21 +24,23 @@ public class BankingFacadeService {
     private final BankAccountService bankAccountService;
     private final TransactionService transactionService;
     private final BudgetService budgetService;
-    private final BankingFacade bankingFacade;  // ADD THIS
+    private final CommandInvoker commandInvoker;
 
     public BankingFacadeService(
             UserService userService,
             BankAccountService bankAccountService,
             TransactionService transactionService,
             BudgetService budgetService,
-            BankingFacade bankingFacade) {  // ADD THIS
+            CommandInvoker commandInvoker) {
 
         this.userService = userService;
         this.bankAccountService = bankAccountService;
         this.transactionService = transactionService;
         this.budgetService = budgetService;
-        this.bankingFacade = bankingFacade;  // ADD THIS
+        this.commandInvoker = commandInvoker;
     }
+
+    // ── User / Session ────────────────────────────────────────────────────────
 
     public Boolean logInUser(String username, String password, HttpSession session) {
         try {
@@ -93,32 +95,89 @@ public class BankingFacadeService {
         }
     }
 
+    // ── Accounts & Transactions ───────────────────────────────────────────────
+
+    public List<BankAccountDTO> getAccounts(String connectedUserID) {
+        return bankAccountService.getConnectedBankAccounts(connectedUserID);
+    }
+
     public List<TransactionDTO> getTransactions(String connectedUserID) {
         return transactionService.getTransactions(connectedUserID);
     }
 
-    // NOW routes through BankingFacade (uses Strategy + Command internally)
+    // ── Strategy + Command: Deposit ───────────────────────────────────────────
+
     public String handleTransaction(TransactionDTO transactionDTO) {
         double amount = transactionDTO.getAmountDollars();
         String accountId = transactionDTO.getConnectedBankAccount();
 
         boolean success;
         if (amount >= 0) {
-            success = bankingFacade.deposit(accountId, amount, transactionDTO);
+            // DepositValidationStrategy: must be > 0 and <= $10,000
+            DepositValidationStrategy validation = new DepositValidationStrategy();
+            if (!validation.isValid(amount)) {
+                return "Deposit rejected: amount must be greater than 0 and no more than $10,000.";
+            }
+            success = commandInvoker.executeCommand(
+                    new DepositCommand(bankAccountService, accountId, amount)
+            );
         } else {
-            success = bankingFacade.withdraw(accountId, Math.abs(amount), transactionDTO);
+            // WithdrawValidationStrategy: must be > 0 and <= current balance
+            double currentBalance = bankAccountService.getBalance(accountId);
+            WithdrawValidationStrategy validation = new WithdrawValidationStrategy(currentBalance);
+            if (!validation.isValid(Math.abs(amount))) {
+                return "Withdrawal rejected: amount must be greater than 0 and cannot exceed balance of $" + currentBalance;
+            }
+            success = commandInvoker.executeCommand(
+                    new WithdrawCommand(bankAccountService, accountId, Math.abs(amount))
+            );
+        }
+
+        if (success) {
+            transactionService.processTransaction(transactionDTO);
         }
 
         return success ? "Transaction successful." : "Transaction failed. Check the amount or account balance.";
     }
 
-    // NOW routes through BankingFacade (uses Strategy + Command internally)
+    // ── Strategy + Command: Transfer ──────────────────────────────────────────
+
     public Boolean transferFundsAndRecordTransaction(
             String sourceAccountID, String targetAccountID, double amount) {
-        return bankingFacade.transferFunds(sourceAccountID, targetAccountID, amount);
+
+        // WithdrawValidationStrategy: source account must have sufficient funds
+        double currentBalance = bankAccountService.getBalance(sourceAccountID);
+        WithdrawValidationStrategy validation = new WithdrawValidationStrategy(currentBalance);
+        if (!validation.isValid(amount)) {
+            System.out.println("Transfer rejected: amount must be greater than 0 and cannot exceed balance of $" + currentBalance);
+            return false;
+        }
+
+        return commandInvoker.executeCommand(
+                new TransferCommand(bankAccountService, sourceAccountID, targetAccountID, amount)
+        );
+    }
+    // ── Strategy + Command: Direct Deposit ───────────────────────────────────
+
+    public Boolean handleDeposit(String accountId, double amount) {
+        DepositValidationStrategy validation = new DepositValidationStrategy();
+        if (!validation.isValid(amount)) {
+            System.out.println("Deposit rejected: must be greater than $0 and no more than $10,000.");
+            return false;
+        }
+        return commandInvoker.executeCommand(new DepositCommand(bankAccountService, accountId, amount));
     }
 
-    public List<BankAccountDTO> getAccounts(String connectedUserID) {
-        return bankAccountService.getConnectedBankAccounts(connectedUserID);
+    // ── Strategy + Command: Direct Withdraw ──────────────────────────────────
+
+    public Boolean handleWithdraw(String accountId, double amount) {
+        double currentBalance = bankAccountService.getBalance(accountId);
+        WithdrawValidationStrategy validation = new WithdrawValidationStrategy(currentBalance);
+        if (!validation.isValid(amount)) {
+            System.out.println("Withdrawal rejected: exceeds balance of $" + currentBalance);
+            return false;
+        }
+        return commandInvoker.executeCommand(new WithdrawCommand(bankAccountService, accountId, amount));
     }
+
 }
