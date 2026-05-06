@@ -51,7 +51,7 @@ public class UserService {
             return savedUser;
         }
     }
-
+    
     public Boolean CheckIfUserExists(String username)
     {
         System.out.println("Checking if user exists");

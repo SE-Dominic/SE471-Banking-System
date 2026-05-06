@@ -129,6 +129,59 @@ function callCreateNewUserEndpoint() {
     });
 }
 
+function callCreateBankAccountEndpoint() {
+    const accountName = document.getElementById('account-name').value;
+    const accountType = document.getElementById('account-type').value;
+    const initialDeposit = document.getElementById('initial-deposit').value;
+
+    if (!accountName || !accountType || !initialDeposit) {
+        alert('Please fill out all fields.');
+        return;
+    }
+
+    fetch('/api/user/sessionStatus', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to get session status');
+        }
+        return response.json();
+    })
+    .then(sessionData => {
+        if (!sessionData.isLoggedIn) {
+            throw new Error('User not logged in');
+        }
+
+        const params = new URLSearchParams({
+            accountName,
+            accountType,
+            initialDeposit,
+            userID: sessionData.username
+        });
+
+        return fetch(`/api/bankAccount/createBankAccount?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to create bank account');
+        }
+        alert('Bank account created successfully!');
+        window.location.hash = 'accounts';
+        getAllConnectedBankAccountsEndpoint();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while creating the bank account. Please try again.');
+    });
+}
+
 function getAllConnectedBankAccountsEndpoint() {
     // Show loading state
     const accountStack = document.getElementById('connected-account-stack');
@@ -223,6 +276,47 @@ function generateBankAccountHTML(bankAccount) {
         </div>
     `;
 }
+
+function loadProfileInfo() {
+    const profileDiv = document.getElementById('load-profile-info');
+    profileDiv.innerHTML = '<p>Loading profile...</p>';
+
+    fetch('/api/user/sessionStatus', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to get session status');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Session data:', data); // Debugging log
+
+        if (!data.isLoggedIn) {
+            window.location.hash = 'login';
+            return;
+        }
+
+        profileDiv.innerHTML = `
+            <div class="profile-card">
+                <div class="profile-row"><span class="profile-label">User ID:</span><span class="profile-value">${data.userID || 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">Username:</span><span class="profile-value">${data.username || 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">Name:</span><span class="profile-value">${data.name || 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">Email:</span><span class="profile-value">${data.email || 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">Phone:</span><span class="profile-value">${data.phoneNum || 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">SSN:</span><span class="profile-value">***-**-${data.socialSecurityNum ? String(data.socialSecurityNum).slice(-4) : 'N/A'}</span></div>
+                <div class="profile-row"><span class="profile-label">Address:</span><span class="profile-value">${data.address || 'N/A'}</span></div>
+            </div>
+        `;
+    })
+    .catch(error => {
+        console.error('Error loading profile:', error);
+        profileDiv.innerHTML = '<p>Error loading profile. Please try again.</p>';
+    });
+}
+
 function redirectTransactionForm(bankAccountID) {
     // Redirect to the transaction form page with the bank account ID as a query parameter
     window.location.hash = `transactionForm.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
@@ -320,7 +414,6 @@ function redirectTransactions(bankAccountID) {
     // Redirect to the withdraw form page with the bank account ID as a query parameter
     window.location.hash = `transactions.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
 }
-
 function populateAccountDropdown() {
     // Get current account ID from URL
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);

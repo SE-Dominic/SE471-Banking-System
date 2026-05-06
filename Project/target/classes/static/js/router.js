@@ -62,6 +62,8 @@ function loadRequestedTemplate(templateName) {
             // Call specific initialization functions for certain templates
             if (baseTemplateName === 'accounts') {
                 getAllConnectedBankAccountsEndpoint();
+            } else if (baseTemplateName === 'profile') {
+                loadProfileInfo();
             } else if (baseTemplateName === 'transactionForm.html') {
                 // Initialize form after loading the template
                 setTimeout(() => {
