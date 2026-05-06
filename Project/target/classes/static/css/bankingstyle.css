@@ -388,3 +388,95 @@ form {
   margin-top: 15px;
   width: 200px;
 }
+
+/* Styling for the signup form */
+#signup-template {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 90%;
+  max-width: 600px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+#signup-template h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.signup-form label {
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.signup-form input, .signup-form select {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.signup-form input:focus, .signup-form select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+#signup-template button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+#signup-template button:hover {
+  background-color: #2874a6;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+#signup-template nav ul {
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  list-style: none;
+  margin-top: 1.5rem;
+}
+
+#signup-template nav ul li a {
+  text-decoration: none;
+  color: var(--primary-color);
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+#signup-template nav ul li a:hover {
+  color: var(--accent-color);
+}
+
+/* Ensure the signup form fits within the frame or scrolls */
+#signup-template {
+  max-height: 90vh; /* Ensure it fits within the viewport */
+  overflow-y: auto; /* Add vertical scrolling if content overflows */
+  margin: auto; /* Center the form */
+  box-sizing: border-box; /* Include padding and border in width/height */
+}

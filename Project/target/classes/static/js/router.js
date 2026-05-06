@@ -43,29 +43,26 @@ function loadTemplate(templateName) {
 function loadRequestedTemplate(templateName) {
     const app = document.getElementById('app');
     
-    // Extract base template name and query parameters
     const [baseTemplateName, queryParams] = templateName.split('?');
     
-    // Add .html extension if not present
+    // Strip .html for consistent comparison
+    const baseTemplateKey = baseTemplateName.replace('.html', ''); // ✅ add this
+    
     const templatePath = baseTemplateName.endsWith('.html') ? baseTemplateName : `${baseTemplateName}.html`;
     
     fetch(`/templates/${templatePath}`)
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`Failed to load template: ${templatePath}`);
-            }
+            if (!response.ok) throw new Error(`Failed to load template: ${templatePath}`);
             return response.text();
         })
         .then(html => {
             app.innerHTML = html;
 
-            // Call specific initialization functions for certain templates
-            if (baseTemplateName === 'accounts') {
+            if (baseTemplateKey === 'accounts') {                    // ✅ use baseTemplateKey
                 getAllConnectedBankAccountsEndpoint();
-            } else if (baseTemplateName === 'profile') {
+            } else if (baseTemplateKey === 'profile') {              // ✅
                 loadProfileInfo();
-            } else if (baseTemplateName === 'transactionForm.html') {
-                // Initialize form after loading the template
+            } else if (baseTemplateKey === 'transactionForm') {      // ✅ will now match
                 setTimeout(() => {
                     if (queryParams) {
                         const urlParams = new URLSearchParams(queryParams);
@@ -78,8 +75,7 @@ function loadRequestedTemplate(templateName) {
                             hiddenInput.value = bankAccountID;
                             document.getElementById('transaction-form').appendChild(hiddenInput);
                             
-                            // Populate the account dropdown
-                            populateAccountDropdown();
+                            populateAccountDropdown(bankAccountID);
                         }
                     }
                 }, 200);

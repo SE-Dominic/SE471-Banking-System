@@ -414,14 +414,12 @@ function redirectTransactions(bankAccountID) {
     // Redirect to the withdraw form page with the bank account ID as a query parameter
     window.location.hash = `transactions.html?bankAccountID=${encodeURIComponent(bankAccountID)}`;
 }
-function populateAccountDropdown() {
-    // Get current account ID from URL
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-    const currentAccountID = urlParams.get('bankAccountID');
-    console.log("hash:", window.location.hash);
-    console.log("bankAccountID:", bankAccountID);
+// Update the function signature to accept it
+function populateAccountDropdown(currentAccountID) {
+    // Remove the URL parsing - you already have what you need
+    // const urlParams = new URLSearchParams(window.location.hash.split('?')[1]); ❌ delete this
+    // const currentAccountID = urlParams.get('bankAccountID');                   ❌ delete this
 
-    // Get all connected accounts
     fetch('/api/user/sessionStatus', {
         method: 'GET',
         credentials: 'include'
@@ -436,7 +434,6 @@ function populateAccountDropdown() {
         const dropdown = document.getElementById('account-dropdown');
         dropdown.innerHTML = '<option value="" disabled selected>Select target account</option>';
         
-        // Add all accounts except the current one
         bankAccounts.forEach(account => {
             if (account.bankAccountID !== currentAccountID) {
                 const option = document.createElement('option');
